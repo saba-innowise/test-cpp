@@ -8,14 +8,14 @@ on:
 jobs:
   lint:
     name: Lint
-    uses: saba-g467/test-cpp-shared-actions/.github/workflows/cpp-lint.yml@main
+    uses: saba-innowise/test-cpp-shared-actions/.github/workflows/cpp-lint.yml@main
 
   build-test:
     name: Build and Test
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-    uses: saba-g467/test-cpp-shared-actions/.github/workflows/cpp-build-test.yml@main
+    uses: saba-innowise/test-cpp-shared-actions/.github/workflows/cpp-build-test.yml@main
     with:
       os: ${{ matrix.os }}
 

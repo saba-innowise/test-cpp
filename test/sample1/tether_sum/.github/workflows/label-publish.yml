@@ -37,7 +37,7 @@ jobs:
 
       - name: Configure Conan remotes
         run: |
-          conan remote add conan-stable https://conan.pkg.github.com/saba-g467 || true
+          conan remote add conan-stable https://conan.pkg.github.com/saba-innowise || true
           conan remote login conan-stable ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check if version exists in conan-stable
@@ -81,7 +81,7 @@ jobs:
 
       - name: Configure Conan remotes
         run: |
-          conan remote add conan-rc https://conan.pkg.github.com/saba-g467 || true
+          conan remote add conan-rc https://conan.pkg.github.com/saba-innowise || true
           conan remote login conan-rc ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build RC package
