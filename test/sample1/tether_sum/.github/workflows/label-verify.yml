@@ -1,0 +1,44 @@
+name: Verify Label
+
+on:
+  pull_request:
+    types: [labeled]
+
+jobs:
+  verify:
+    if: github.event.label.name == 'verify'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Conan
+        run: |
+          pip install conan
+          conan profile detect
+
+      - name: Create tether_sum Conan package
+        run: |
+          conan create .
+
+      - name: Install consumer dependencies
+        working-directory: ../tether_sum_package_test
+        run: |
+          conan install . --build=missing
+
+      - name: Build consumer project
+        working-directory: ../tether_sum_package_test
+        run: |
+          cmake --preset conan-release
+          cmake --build --preset conan-release
+
+      - name: Run consumer executable
+        working-directory: ../tether_sum_package_test
+        run: |
+          ./build/Release/tether_sum_package_test

@@ -1,0 +1,166 @@
+# Conan 2 Usage Instructions
+
+## Prerequisites
+
+- CMake 3.15+
+- Conan 2.x
+- C++ compiler (MSVC, GCC, Clang)
+
+## Library Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `shared` | `True` | Build as shared library |
+| `build_tests` | `False` | Build unit tests |
+| `run_tests` | `False` | Run tests after build |
+
+## Building the Library
+
+### Create and export to local cache
+
+```bash
+cd tether_sum
+conan create . --build=missing
+```
+
+### Build with tests
+
+```bash
+conan create . -o build_tests=True -o run_tests=True --build=missing
+```
+
+### Build as static library
+
+```bash
+conan create . -o shared=False --build=missing
+```
+
+## Local Development
+
+### Using CMake presets (recommended)
+
+```bash
+cd tether_sum
+conan install . -o build_tests=True --build=missing
+cmake --preset conan-default
+cmake --build --preset conan-release
+ctest --preset conan-release --output-on-failure
+```
+
+### Editable mode (for active development)
+
+```bash
+cd tether_sum
+conan editable add . tether_sum/0.1
+conan install . -o build_tests=True --build=missing
+cmake --preset conan-default
+cmake --build --preset conan-release
+```
+
+To remove editable mode:
+```bash
+conan editable remove tether_sum/0.1
+```
+
+## Consumer Project
+
+### Install and build
+
+```bash
+cd tether_sum_package_test
+conan install . --build=missing
+cmake --preset conan-default
+cmake --build --preset conan-release
+```
+
+### Using explicit --requires (for CI/CD)
+
+```bash
+conan install --requires=tether_sum/0.1 -g CMakeDeps -g CMakeToolchain --output-folder=build
+cmake -B build -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake
+cmake --build build --config Release
+```
+
+## Visual Studio Integration
+
+1. Run `conan install . --build=missing` in the project directory
+2. Open folder in Visual Studio: **File > Open > Folder**
+3. VS will detect `CMakePresets.json` and configure automatically
+
+## CI/CD Recommendations
+
+### Separate build and test stages
+
+```yaml
+# Stage 1: Build
+- run: |
+    conan install . -o build_tests=True --build=missing
+    conan build .
+
+# Stage 2: Unit Tests
+- run: |
+    ctest --test-dir build/Release --output-on-failure
+```
+
+### Package integration test
+
+```yaml
+# Stage: Package Test (verify label)
+- run: |
+    # Create the package
+    cd tether_sum
+    conan create . --build=missing
+
+    # Test with consumer project
+    cd ../tether_sum_package_test
+    conan install . --build=missing
+    conan build .
+    ./build/Release/tether_sum_package_test
+```
+
+### Using test_package (Conan standard)
+
+Create `test_package/` folder alongside `conanfile.py` for automatic package testing:
+```bash
+conan create . --build=missing  # Automatically runs test_package
+```
+
+### Dependency pinning (deterministic builds)
+
+Generate and commit lockfile:
+```bash
+conan lock create . --lockfile-out=conan.lock
+```
+
+Use in CI:
+```bash
+conan install . --lockfile=conan.lock
+```
+
+### Multi-platform CI matrix
+
+Use Conan profiles for each platform:
+```bash
+# Linux
+conan create . -pr:h=profiles/linux-gcc --build=missing
+
+# Windows
+conan create . -pr:h=profiles/windows-msvc --build=missing
+
+# macOS
+conan create . -pr:h=profiles/macos-clang --build=missing
+```
+
+### Publishing workflow
+
+```yaml
+# RC (pre-merge) -> conan-rc remote
+- run: conan upload "tether_sum/0.1.0-dev-${SHORT_SHA}" -r conan-rc
+
+# Release (post-merge) -> conan-stable remote
+- run: |
+    conan upload "tether_sum/0.1.0" -r conan-stable
+    git tag v0.1.0
+    git push origin v0.1.0
+    gh release create v0.1.0 --title "v0.1.0"
+```

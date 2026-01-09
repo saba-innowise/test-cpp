@@ -1,0 +1,45 @@
+# tetsum_consumer
+
+A consumer project that tests the `tetsum` Conan package.
+
+## Purpose
+
+This project verifies:
+- The `tetsum` package installs correctly via Conan
+- `find_package(tetsum CONFIG REQUIRED)` works
+- The static library links correctly
+
+## Usage
+
+### Prerequisites
+
+The `tetsum` package must be in your Conan cache:
+
+```bash
+cd ../tetsum
+conan create . --build=missing
+```
+
+### Build
+
+```bash
+cd tetsum_consumer
+conan install . --build=missing
+cmake --preset conan-default
+cmake --build --preset conan-release
+```
+
+### Run
+
+```bash
+./build/Release/tetsum_consumer
+```
+
+### Using explicit --requires (CI/CD)
+
+```bash
+conan install --requires=tetsum/1.0 -g CMakeDeps -g CMakeToolchain --output-folder=build
+cmake -B build -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake
+cmake --build build --config Release
+./build/Release/tetsum_consumer
+```

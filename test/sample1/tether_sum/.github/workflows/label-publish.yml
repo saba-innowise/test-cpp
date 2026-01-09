@@ -1,0 +1,96 @@
+name: Publish RC on Label
+
+on:
+  pull_request:
+    types: [labeled]
+
+jobs:
+  version-check:
+    if: github.event.label.name == 'publish'
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.read-version.outputs.version }}
+      rc-version: ${{ steps.read-version.outputs.rc-version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read version from VERSION file
+        id: read-version
+        run: |
+          VERSION=$(cat VERSION)
+          SHORT_SHA=${GITHUB_SHA::7}
+          RC_VERSION="${VERSION}-dev-${SHORT_SHA}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "rc-version=${RC_VERSION}" >> $GITHUB_OUTPUT
+          echo "Version: ${VERSION}"
+          echo "RC Version: ${RC_VERSION}"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Conan
+        run: |
+          pip install conan
+
+      - name: Configure Conan remotes
+        run: |
+          conan remote add conan-stable https://conan.pkg.github.com/saba-g467 || true
+          conan remote login conan-stable ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check if version exists in conan-stable
+        run: |
+          VERSION=${{ steps.read-version.outputs.version }}
+          if conan search tether_sum/${VERSION}@ -r conan-stable 2>/dev/null; then
+            echo "::error::Version ${VERSION} already exists in conan-stable remote. Please update the VERSION file."
+            exit 1
+          fi
+          echo "Version ${VERSION} does not exist in conan-stable. Proceeding with build."
+
+  build-rc:
+    needs: version-check
+    if: github.event.label.name == 'publish'
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: Linux
+          - os: windows-latest
+            name: Windows
+          - os: macos-latest
+            name: macOS
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Conan
+        run: |
+          pip install conan
+
+      - name: Detect Conan profile
+        run: |
+          conan profile detect --force
+
+      - name: Configure Conan remotes
+        run: |
+          conan remote add conan-rc https://conan.pkg.github.com/saba-g467 || true
+          conan remote login conan-rc ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build RC package
+        run: |
+          RC_VERSION="${{ needs.version-check.outputs.rc-version }}"
+          echo "Building tether_sum/${RC_VERSION}"
+          conan create . --version=${RC_VERSION} -s build_type=Release
+
+      - name: Upload to conan-rc remote
+        run: |
+          RC_VERSION="${{ needs.version-check.outputs.rc-version }}"
+          conan upload "tether_sum/${RC_VERSION}" -r conan-rc --confirm

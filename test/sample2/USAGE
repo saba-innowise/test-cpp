@@ -1,0 +1,102 @@
+# Conan 2 Usage Instructions (sample2)
+
+## Overview
+
+This sample demonstrates a simple static library with Conan 2:
+- `tetsum`: Static library with GTest as test_requires
+- `tetsum_consumer`: Consumer project
+
+## Prerequisites
+
+- CMake 3.15+
+- Conan 2.x
+- C++ compiler
+
+## Library Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `build_tests` | `False` | Build unit tests |
+| `run_tests` | `False` | Run tests after build |
+
+## Building the Library
+
+### Create and export to local cache
+
+```bash
+cd tetsum
+conan create . --build=missing
+```
+
+### Build with tests
+
+```bash
+conan create . -o build_tests=True -o run_tests=True --build=missing
+```
+
+## Local Development
+
+```bash
+cd tetsum
+conan install . -o build_tests=True --build=missing
+cmake --preset conan-default
+cmake --build --preset conan-release
+ctest --preset conan-release --output-on-failure
+```
+
+## Consumer Project
+
+```bash
+cd tetsum_consumer
+conan install . --build=missing
+cmake --preset conan-default
+cmake --build --preset conan-release
+./build/Release/tetsum_consumer
+```
+
+## CI/CD Recommendations
+
+### Separate build and test stages
+
+```yaml
+# Stage 1: Build
+- run: |
+    conan install . -o build_tests=True --build=missing
+    conan build .
+
+# Stage 2: Unit Tests
+- run: ctest --test-dir build/Release --output-on-failure
+```
+
+### Package integration test
+
+```yaml
+# Stage: Package Test
+- run: |
+    cd tetsum
+    conan create . --build=missing
+
+    cd ../tetsum_consumer
+    conan install . --build=missing
+    conan build .
+    ./build/Release/tetsum_consumer
+```
+
+### Dependency pinning
+
+```bash
+# Generate lockfile
+conan lock create . --lockfile-out=conan.lock
+
+# Use in CI
+conan install . --lockfile=conan.lock
+```
+
+## Key Differences from sample1
+
+| Feature | sample1 | sample2 |
+|---------|---------|---------|
+| Library type | Shared (default) / Static | Static only |
+| GTest dependency | `requires()` | `test_requires()` |
+| DLL export macros | Yes | Not needed |
+| Complexity | More complex | Simpler |

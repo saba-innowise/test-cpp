@@ -1,0 +1,76 @@
+# tetsum
+
+A simple static C++ library demonstrating Conan 2 packaging with CMake.
+
+## Overview
+
+This library provides a trivial `sum` function. It demonstrates:
+- CMake-based static library structure
+- Conan 2 packaging
+- Unit testing with GoogleTest (as test_requires)
+
+## API
+
+```cpp
+#include <tetsum/tetsum.hpp>
+
+int result = tetsum::sum(2, 3);  // Returns 5
+```
+
+## Project Structure
+
+```
+tetsum/
+├── conanfile.py       # Conan 2 recipe
+├── CMakeLists.txt     # CMake configuration
+├── Config.cmake.in    # CMake package config template
+├── include/
+│   └── tetsum/
+│       └── tetsum.hpp # Public API
+├── src/
+│   └── tetsum.cpp     # Implementation
+└── tests/
+    ├── CMakeLists.txt
+    └── tetsum_test.cpp
+```
+
+## Build Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `build_tests` | `False` | Build unit tests |
+| `run_tests` | `False` | Run tests after build |
+
+## Quick Start
+
+### Build and install to local cache
+
+```bash
+conan create . --build=missing
+```
+
+### Build with tests
+
+```bash
+conan create . -o build_tests=True -o run_tests=True --build=missing
+```
+
+### Local development
+
+```bash
+conan install . -o build_tests=True --build=missing
+cmake --preset conan-default
+cmake --build --preset conan-release
+ctest --preset conan-release --output-on-failure
+```
+
+## Consuming the Library
+
+```cmake
+find_package(tetsum CONFIG REQUIRED)
+target_link_libraries(your_target PRIVATE tetsum::tetsum)
+```
+
+## License
+
+MIT

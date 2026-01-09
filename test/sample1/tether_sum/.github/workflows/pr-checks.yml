@@ -1,0 +1,55 @@
+name: PR Checks
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  lint:
+    name: Lint
+    uses: saba-g467/test-cpp-shared-actions/.github/workflows/cpp-lint.yml@main
+
+  build-test:
+    name: Build and Test
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    uses: saba-g467/test-cpp-shared-actions/.github/workflows/cpp-build-test.yml@main
+    with:
+      os: ${{ matrix.os }}
+
+  lock-check:
+    name: Verify Conan Lock
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Conan
+        run: pip install conan
+
+      - name: Configure Conan
+        run: conan profile detect --force
+
+      - name: Verify conan.lock is up-to-date
+        run: |
+          # Generate fresh lock file
+          conan lock create . --lockfile-out=conan.lock.new
+
+          # Compare with existing lock file if it exists
+          if [ -f conan.lock ]; then
+            if ! diff -q conan.lock conan.lock.new > /dev/null 2>&1; then
+              echo "::error::conan.lock is out of date. Please run 'conan lock create .' and commit the updated lock file."
+              diff conan.lock conan.lock.new || true
+              exit 1
+            fi
+            echo "conan.lock is up-to-date"
+          else
+            echo "::warning::No conan.lock file found. Consider adding one for reproducible builds."
+          fi

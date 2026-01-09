@@ -1,0 +1,149 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  check-publish-label:
+    runs-on: ubuntu-latest
+    outputs:
+      should_publish: ${{ steps.check_label.outputs.should_publish }}
+    steps:
+      - name: Check if merged PR has publish label
+        id: check_label
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: commits } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha
+            });
+
+            if (commits.length === 0) {
+              console.log('No PR associated with this commit');
+              core.setOutput('should_publish', 'false');
+              return;
+            }
+
+            const pr = commits[0];
+            console.log(`Found PR #${pr.number}: ${pr.title}`);
+
+            const hasPublishLabel = pr.labels.some(label => label.name === 'publish');
+            console.log(`Has publish label: ${hasPublishLabel}`);
+
+            core.setOutput('should_publish', hasPublishLabel ? 'true' : 'false');
+
+  build-release:
+    needs: check-publish-label
+    if: needs.check-publish-label.outputs.should_publish == 'true'
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: Linux
+          - os: windows-latest
+            name: Windows
+          - os: macos-latest
+            name: macOS
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Conan
+        run: |
+          pip install conan
+          conan profile detect
+
+      - name: Read version from VERSION file
+        id: version
+        shell: bash
+        run: |
+          if [ -f VERSION ]; then
+            VERSION=$(cat VERSION | tr -d '[:space:]')
+          else
+            VERSION="0.1"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Using version: $VERSION"
+
+      - name: Configure Conan remotes
+        run: |
+          conan remote add conan-stable https://nuget.pkg.github.com/saba-g467/index.json --force
+
+      - name: Build release package
+        run: |
+          conan create . --version=${{ steps.version.outputs.version }} -s build_type=Release
+
+      - name: Upload to conan-stable remote
+        run: |
+          conan remote login conan-stable ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+          conan upload "tether_sum/${{ steps.version.outputs.version }}" --remote=conan-stable --confirm
+
+  create-release:
+    needs: build-release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read version from VERSION file
+        id: version
+        run: |
+          if [ -f VERSION ]; then
+            VERSION=$(cat VERSION | tr -d '[:space:]')
+          else
+            VERSION="0.1"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Using version: $VERSION"
+
+      - name: Create git tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "v${{ steps.version.outputs.version }}" -m "Release v${{ steps.version.outputs.version }}"
+          git push origin "v${{ steps.version.outputs.version }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          echo "## Release v${{ steps.version.outputs.version }}" > release_notes.md
+          echo "" >> release_notes.md
+          echo "### Changes" >> release_notes.md
+          echo "" >> release_notes.md
+          git log --pretty=format:"- %s" $(git describe --tags --abbrev=0 2>/dev/null || git rev-list --max-parents=0 HEAD)..HEAD >> release_notes.md 2>/dev/null || echo "- Initial release" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### Package Information" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "- **Package:** tether_sum/${{ steps.version.outputs.version }}" >> release_notes.md
+          echo "- **Remote:** conan-stable" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### Installation" >> release_notes.md
+          echo "" >> release_notes.md
+          echo '```bash' >> release_notes.md
+          echo "conan install --requires=tether_sum/${{ steps.version.outputs.version }}" >> release_notes.md
+          echo '```' >> release_notes.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: Release v${{ steps.version.outputs.version }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
