@@ -2,13 +2,13 @@ name: Create GitHub Release
 run-name: Create GitHub Release
 
 on:
-  # pull_request:
-  #   types: [closed]
-  #   branches: [main]
-  #   paths-ignore:
-  #     - .github/workflows/**
-  push:
+  pull_request:
+    types: [closed]
     branches: [main]
+    paths-ignore:
+      - .github/workflows/**
+  # push:
+  #   branches: [main]
 
 permissions:
   contents: write
