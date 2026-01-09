@@ -12,12 +12,7 @@ jobs:
 
   build-test:
     name: Build and Test
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
     uses: saba-innowise/test-cpp-shared-actions/.github/workflows/cpp-build-test.yml@main
-    with:
-      os: ${{ matrix.os }}
 
   lock-check:
     name: Verify Conan Lock
@@ -29,7 +24,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install Conan
         run: pip install conan
