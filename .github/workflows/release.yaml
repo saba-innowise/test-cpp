@@ -1,0 +1,60 @@
+name: Create GitHub Release
+run-name: Create GitHub Release
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+    paths-ignore:
+      - .github/workflows/**
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  build-test:
+    if: ${{ github.event.pull_request.merged && github.event.label.name == 'publish' }}
+    name: Build & Test
+    uses: saba-innowise/test-cpp-shared-actions/.github/workflows/cpp-build-test.yaml@main
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            conan_profile: conan-profiles/linux-gcc
+          - runner: windows-latest
+            conan_profile: conan-profiles/windows-msvc
+          - runner: macos-latest
+            conan_profile: conan-profiles/macos-clang-armv8
+
+    with:
+      package_name: tether_sum
+      source_directory: tether_sum
+      runner: ${{ matrix.runner }}
+      conan_profile: ${{ matrix.conan_profile }}
+      environment: stable
+    secrets: inherit
+
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: build-test
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create GitHub Release
+        run: |
+          VERSION="$(cat tether_sum/VERSION | tr -d \n)"
+
+          gh release create "$VERSION" \
+            --target main \
+            --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}
