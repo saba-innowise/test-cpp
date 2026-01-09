@@ -1,5 +1,8 @@
+import os
+
 from conan import ConanFile
-from conan.tools.cmake import CMake, CMakeToolchain, CMakeDeps, cmake_layout
+from conan.tools.cmake import CMake, CMakeDeps, CMakeToolchain, cmake_layout
+from conan.tools.files import load
 
 
 class TetherSumPackageTestConan(ConanFile):
@@ -7,7 +10,9 @@ class TetherSumPackageTestConan(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
 
     def requirements(self):
-        self.requires("tether_sum/0.1")
+        version_file = os.path.join(self.recipe_folder, "../tether_sum/VERSION")
+        base_version = load(self, version_file).strip()
+        self.requires(f"tether_sum/{base_version}")
 
     def layout(self):
         cmake_layout(self)
