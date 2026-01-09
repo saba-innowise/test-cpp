@@ -16,8 +16,15 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  echo:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo '"${{ github.event.pull_request.merged }}"'
+      - run: echo '"${{ github.event.pull_request.labels }}"'
+      - run: echo '"${{ github.event.label.name == 'publish' }}"'
+
   build-test:
-    if: ${{ github.event.pull_request.merged && github.event.label.name == 'publish' }}
+    if: ${{ github.event.pull_request.merged && contains(github.event.pull_request.labels.*.name, 'publish') }}
     name: Build & Test
     uses: saba-innowise/test-cpp-shared-actions/.github/workflows/cpp-build-test.yaml@main
 
