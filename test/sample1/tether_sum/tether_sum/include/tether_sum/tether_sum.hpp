@@ -4,5 +4,5 @@
 #include "tether_sum/export.hpp"
 
 namespace tether {
-    TETHER_SUM_API int sum(int a, int b);
+TETHER_SUM_API int sum(int a, int b);
 }

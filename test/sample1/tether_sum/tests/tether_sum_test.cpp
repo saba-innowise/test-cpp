@@ -3,10 +3,7 @@
 #include <gtest/gtest.h>
 
 // Demonstrate some basic assertions.
-TEST(TetherTest, BasicAssertions) {
-  EXPECT_EQ(tether::sum(2, 2), 4);
-}
-
+TEST(TetherTest, BasicAssertions) { EXPECT_EQ(tether::sum(2, 2), 4); }
 
 // #include <iostream>
 
