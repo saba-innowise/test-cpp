@@ -1,0 +1,10 @@
+# Clang-Format configuration for tether_sum library
+# Based on LLVM style with project-specific customizations
+
+BasedOnStyle: LLVM
+IndentWidth: 4
+ColumnLimit: 120
+AlignAfterOpenBracket: Align
+AllowShortFunctionsOnASingleLine: All
+SortIncludes: true
+Standard: c++17
