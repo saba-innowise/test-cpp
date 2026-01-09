@@ -1,0 +1,47 @@
+name: Run Integration Tests
+run-name: Run Integration Tests
+
+on:
+  pull_request:
+    types: [labeled]
+    branches: [main]
+
+jobs:
+  test:
+    if: ${{ github.event.label.name == 'verify' }}
+    name: Run Integration Tests (${{ matrix.runner }})
+    runs-on: ${{ matrix.runner }}
+    environment:
+      name: stable
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            conan_profile: conan-profiles/linux-gcc
+          - runner: windows-latest
+            conan_profile: conan-profiles/windows-msvc
+          - runner: macos-latest
+            conan_profile: conan-profiles/macos-clang-armv8
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Conan
+        uses: conan-io/setup-conan@v1
+
+      - name: Build Library
+        working-directory: tether_sum
+        run: conan create . --profile ${{ matrix.conan_profile }} --build=missing
+
+      - name: Build Integration Tests
+        working-directory: tether_sum_package_test
+        run: |
+          conan install . --profile ${{ matrix.conan_profile }} --build=missing
+          conan build . --profile ${{ matrix.conan_profile }}
+
+      - name: Run Integration Tests
+        working-directory: tether_sum_package_test/build/Release
+        run: ./tether_sum_package_test
