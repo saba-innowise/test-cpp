@@ -1,0 +1,33 @@
+name: Pull Request Checks
+run-name: Pull Request Checks
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint
+    uses: saba-innowise/test-cpp-shared-actions/.github/workflows/cpp-lint.yaml@main
+
+  build-test:
+    name: Build & Test
+    uses: saba-innowise/test-cpp-shared-actions/.github/workflows/cpp-build-test.yaml@main
+    needs: lint
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            conan_profile: conan-profiles/linux-gcc
+          - runner: windows-latest
+            conan_profile: conan-profiles/windows-msvc
+          - runner: macos-latest
+            conan_profile: conan-profiles/macos-clang-armv8
+
+    with:
+      package_name: tether_sum
+      source_directory: tether_sum
+      runner: ${{ matrix.runner }}
+      conan_profile: ${{ matrix.conan_profile }}

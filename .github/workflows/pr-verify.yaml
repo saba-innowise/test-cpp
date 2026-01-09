@@ -1,0 +1,22 @@
+name: Run Integration Tests
+run-name: Run Integration Tests
+
+on:
+  pull_request:
+    types: [labeled]
+    branches: [main]
+
+jobs:
+  check-version:
+    if: ${{ github.event.label.name == 'verify' }}
+    runs-on: ubuntu-latest
+    environment:
+      name: stable
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Integration Tests
+        run: |
+          echo test
