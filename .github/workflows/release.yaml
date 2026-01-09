@@ -16,6 +16,13 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  echo:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo '"${{ github.event.pull_request.merged }}"'
+      - run: echo '"${{ github.event.label.name }}"'
+      - run: echo '"${{ github.event.label.name == 'publish' }}"'
+
   build-test:
     if: ${{ github.event.pull_request.merged && github.event.label.name == 'publish' }}
     name: Build & Test
