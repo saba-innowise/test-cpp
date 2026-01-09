@@ -26,7 +26,19 @@ jobs:
       - name: Download Build Artifacts
         uses: actions/download-artifact@v4
         with:
-          name: package
+          name: package-ubuntu-latest
+          path: ${{ runner.temp }}
+
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: package-windows-latest
+          path: ${{ runner.temp }}
+
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: package-macos-latest
           path: ${{ runner.temp }}
 
       - name: Create GitHub Release
