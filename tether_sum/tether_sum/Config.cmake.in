@@ -1,0 +1,10 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/modules")
+include(TetherAddExecutable)
+
+include("${CMAKE_CURRENT_LIST_DIR}/tether_sumTargets.cmake")
+
+check_required_components(tether_sum)

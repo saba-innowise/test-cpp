@@ -1,0 +1,69 @@
+# tether_sum_package_test
+
+A consumer project that tests the `tether_sum` Conan package installation.
+
+## Purpose
+
+This project serves as an integration test to verify:
+- The `tether_sum` package installs correctly via Conan
+- `find_package(tether_sum CONFIG REQUIRED)` works
+- The library links and runs correctly
+- The `TetherAddExecutable` CMake module is exported properly
+
+## Usage
+
+### Prerequisites
+
+The `tether_sum` package must be available in your Conan cache:
+
+```bash
+cd ../tether_sum
+conan create . --build=missing
+```
+
+### Build with Conan
+
+```bash
+cd tether_sum_package_test
+conan install . --build=missing
+cmake --preset conan-default
+cmake --build --preset conan-release
+```
+
+### Run
+
+```bash
+./build/Release/tether_sum_package_test
+```
+
+### Using explicit --requires (CI/CD pattern)
+
+```bash
+conan install --requires=tether_sum/0.1 -g CMakeDeps -g CMakeToolchain --output-folder=build
+cmake -B build -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake
+cmake --build build --config Release
+./build/Release/tether_sum_package_test
+```
+
+## CI/CD Integration
+
+This project is designed for the "verify" label workflow in CI/CD:
+
+```yaml
+# Triggered by 'verify' label on PR
+- name: Integration Test
+  run: |
+    cd tether_sum_package_test
+    conan install --requires=tether_sum/0.1.0-dev-${{ github.sha }} --build=missing
+    conan build .
+    ./build/Release/tether_sum_package_test
+```
+
+## Project Structure
+
+```
+tether_sum_package_test/
+├── conanfile.py                  # Conan consumer recipe
+├── CMakeLists.txt                # CMake configuration
+└── tether_sum_package_test.cpp   # Test executable
+```
