@@ -4,25 +4,56 @@ on:
   push:
     branches:
       - main
+    # paths-ignore:
+    #   - ".github/workflows/**"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: auto-tag-main
+  cancel-in-progress: false
 
 jobs:
   build-test:
     name: Build & Test
+    uses: saba-innowise/test-cpp-shared-actions/.github/workflows/cpp-build-test.yml@main
     strategy:
       matrix:
         include:
           - os: ubuntu-latest
           - os: windows-latest
           - os: macos-latest
-    uses: saba-innowise/test-cpp-shared-actions/.github/workflows/cpp-build-test.yml@main
     with:
       source_directory: test/sample1/tether_sum
       os: ${{ matrix.os }}
 
   release:
+    name: Publish Release
     runs-on: ubuntu-latest
+    needs: build-test
 
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Tag Commit
+        run: |
+          # Find latest SemVer-ish tag (vMAJOR.MINOR.PATCH)
+          latest="$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n 1 || true)"
+          [[ -n "${latest}" ]] || latest="v0.0.0"
+
+          ver="${latest#v}"
+          IFS=. read -r major minor patch <<< "${ver}"
+
+          patch=$((patch + 1))
+          next="v${major}.${minor}.${patch}"
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git tag -a "${next}" -m "Release ${next}"
+          git push origin "${next}"
+
       - name: Download Build Artifacts
         uses: actions/download-artifact@v4
         with:
