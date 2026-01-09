@@ -13,6 +13,8 @@ jobs:
   build-test:
     name: Build and Test
     uses: saba-innowise/test-cpp-shared-actions/.github/workflows/cpp-build-test.yml@main
+    with:
+      source-dir: test/sample1
 
   lock-check:
     name: Verify Conan Lock
