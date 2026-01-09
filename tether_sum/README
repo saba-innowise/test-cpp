@@ -1,0 +1,170 @@
+# tether_sum
+
+A simple C++ library demonstrating Conan 2 packaging with CMake.
+
+## Overview
+
+This library provides a trivial `sum` function. The purpose is to demonstrate:
+- CMake-based C++ library structure
+- Conan 2 packaging
+- Unit testing with GoogleTest
+- CI/CD integration patterns
+
+## API
+
+```cpp
+#include <tether_sum/tether_sum.hpp>
+
+int result = tether::sum(2, 3);  // Returns 5
+```
+
+## Project Structure
+
+```
+tether_sum/
+├── conanfile.py          # Conan 2 recipe
+├── CMakeLists.txt        # Root CMake configuration
+├── cmake/
+│   └── TetherAddExecutable.cmake  # Helper module
+├── tether_sum/
+│   ├── CMakeLists.txt    # Library CMake config
+│   ├── include/
+│   │   └── tether_sum/
+│   │       ├── tether_sum.hpp  # Public API
+│   │       ├── export.hpp      # DLL export macros
+│   │       └── config.hpp      # Version info (generated)
+│   └── src/
+│       └── tether_sum.cpp      # Implementation
+└── tests/
+    ├── CMakeLists.txt          # Test configuration
+    └── tether_sum_test.cpp     # Unit tests
+```
+
+## Build Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `shared` | `True` | Build as shared/dynamic library |
+| `build_tests` | `False` | Build unit tests (requires GTest) |
+| `run_tests` | `False` | Run tests after build |
+
+## Quick Start
+
+### Using Conan (recommended)
+
+```bash
+# Build and install to local cache
+conan create . --build=missing
+
+# With tests
+conan create . -o build_tests=True -o run_tests=True --build=missing
+
+# Static library
+conan create . -o shared=False --build=missing
+```
+
+### Local Development
+
+```bash
+conan install . -o build_tests=True --build=missing
+cmake --preset conan-default
+cmake --build --preset conan-release
+ctest --preset conan-release --output-on-failure
+```
+
+### Legacy CMake (without Conan)
+
+```bash
+cmake -S . -B build -DTETHER_SUM_BUILD_SHARED=ON -DTETHER_SUM_BUILD_TESTS=ON
+cmake --build build --config Release
+ctest --test-dir build --output-on-failure
+cmake --install build --config Release --prefix=/path/to/install
+```
+
+## Consuming the Library
+
+After installation, use in your CMake project:
+
+```cmake
+find_package(tether_sum CONFIG REQUIRED)
+target_link_libraries(your_target PRIVATE tether_sum::tether_sum)
+```
+
+## CI/CD Pipeline
+
+### Overview
+
+This library uses an automated CI/CD pipeline that handles linting, building, testing, and publishing. The pipeline ensures code quality and provides a streamlined path from development to release.
+
+### PR Workflow
+
+When you open a pull request, the following automatic checks run:
+
+1. **Lint** - Code style and static analysis checks
+2. **Build** - Compiles the library across supported platforms
+3. **Test** - Runs the unit test suite
+
+**Branch Requirements:**
+- Your branch must be up-to-date with the target branch before merging
+- Linear history is enforced (no merge commits in feature branches)
+
+### Labels
+
+Pull requests support special labels that trigger additional workflows:
+
+| Label | Description |
+|-------|-------------|
+| `verify` | Triggers end-to-end integration tests against downstream consumers |
+| `publish` | Triggers a release candidate (RC) package build and upload to the RC remote |
+
+### Release Process
+
+1. **Bump Version**: Edit the `VERSION` file in the repository root to set the new version number
+
+2. **Create PR**: Open a pull request with your changes
+
+3. **Add `publish` Label**: Apply the `publish` label to trigger RC package creation
+
+4. **Merge**: When the PR is merged with the `publish` label:
+   - A release candidate package is built and uploaded to `conan-rc`
+   - After validation, the package is promoted to `conan-stable` as a final release
+
+**Package Naming:**
+- **Release Candidate**: `tether_sum/<version>-rc.<build>@`
+- **Final Release**: `tether_sum/<version>@`
+
+### Conan Remotes
+
+The pipeline uses two Conan remotes for package distribution:
+
+| Remote | Purpose |
+|--------|---------|
+| `conan-rc` | Release candidates for testing and validation |
+| `conan-stable` | Final, production-ready releases |
+
+To add these remotes locally:
+
+```bash
+conan remote add conan-rc <rc-remote-url>
+conan remote add conan-stable <stable-remote-url>
+```
+
+### Branch Protection
+
+The repository enforces branch protection rules on the main branch. To configure branch protection:
+
+```bash
+# Run the setup script from the repository root
+./scripts/setup-branch-protection.sh
+```
+
+**Enforced Rules:**
+- Required status checks must pass (lint, build, test)
+- Pull request reviews are required before merging
+- Branch must be up-to-date before merging
+- Linear history is required (no merge commits)
+- Force pushes are prohibited
+
+## License
+
+MIT
