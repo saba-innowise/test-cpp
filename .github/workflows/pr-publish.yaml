@@ -1,0 +1,74 @@
+name: Package Release Candidate
+run-name: Package Release Candidate
+
+on:
+  pull_request:
+    types: [labeled]
+    branches: [main]
+
+# same group as the release pipeline to avoid race conditions
+# while verifying that the version is not present in conan-stable
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  check-version:
+    if: ${{ github.event.label.name == 'publish' }}
+    name: Check Version
+    runs-on: ubuntu-latest
+    environment:
+      name: stable
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Conan
+        uses: conan-io/setup-conan@v1
+
+      - name: Check Version
+        run: |
+          VERSION="$(cat tether_sum/VERSION | tr -d \n)"
+
+          conan remote add ${{ vars.CONAN_REMOTE_NAME }} ${{ vars.CONAN_REMOTE_URL }}
+          conan remote login --password '${{ secrets.CONAN_REMOTE_PASSWORD }}' ${{ vars.CONAN_REMOTE_NAME }} ${{ vars.CONAN_REMOTE_USERNAME }}
+
+          VERSION_EXISTS=$(
+            conan list tether_sum \
+              --remote conan-stable \
+              --format json | \
+            jq ".\"conan-stable\" | keys | .[] | contains(\"tether_sum/$VERSION\")"
+          )
+
+          if [ $VERSION_EXISTS = 'true' ]; then
+            exit 1
+          fi
+
+  build-test:
+    name: Build & Test
+    uses: saba-innowise/test-cpp-shared-actions/.github/workflows/cpp-build-test.yaml@main
+    needs: check-version
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            conan_profile: conan-profiles/linux-gcc
+          - runner: windows-latest
+            conan_profile: conan-profiles/windows-msvc
+          - runner: macos-latest
+            conan_profile: conan-profiles/macos-clang-armv8
+
+    with:
+      package_name: tether_sum
+      source_directory: tether_sum
+      runner: ${{ matrix.runner }}
+      conan_profile: ${{ matrix.conan_profile }}
+      environment: rc
+      version_suffix: -dev-${{ github.sha }}
+    secrets: inherit
