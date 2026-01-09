@@ -14,6 +14,13 @@ jobs:
 
   build-test:
     name: Build & Test
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+          - os: windows-latest
+          - os: macos-latest
     uses: saba-innowise/test-cpp-shared-actions/.github/workflows/cpp-build-test.yml@main
     with:
       source_directory: test/sample1/tether_sum
+      os: ${{ matrix.os }}
