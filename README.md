@@ -104,7 +104,7 @@ Applying the **`verify`** label triggers **integration/E2E tests**.
 - CI builds a **consumer** CMake project that:
   1. Builds the tether_sub library
   2. Installs the library via Conan:
-     - `conan install --requires=tether_sum/vX.Y.Z ...`
+     - `conan install --requires=tether_sum/X.Y.Z ...`
   3. Links against the package and runs a tiny executable that calls `sum()`
 
 ---
@@ -147,6 +147,7 @@ To publish Conan packages and create releases, GitHub Actions needs credentials.
 - `CONAN_REMOTE_PASSWORD` — password/token
 
 Package registry was set up on GitLab, as they recently started rolling out support for Conan 2.
+[link](https://gitlab.com/saba.innowise/tether/-/packages)
 
 ---
 
