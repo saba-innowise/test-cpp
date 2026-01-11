@@ -3,11 +3,9 @@ cmake_minimum_required(VERSION 3.15)
 option(TETHER_SUM_BUILD_TESTS "build tests" ON)
 option(TETHER_SUM_BUILD_SHARED "build as shared library" ON)
 
-# Read version from VERSION file
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/VERSION" TETHER_SUM_VERSION_RAW)
 string(STRIP "${TETHER_SUM_VERSION_RAW}" TETHER_SUM_VERSION)
 
-# Parse major.minor.patch components
 string(REPLACE "." ";" VERSION_LIST "${TETHER_SUM_VERSION}")
 list(GET VERSION_LIST 0 TETHER_SUM_VERSION_MAJOR)
 list(GET VERSION_LIST 1 TETHER_SUM_VERSION_MINOR)
@@ -33,11 +31,11 @@ set(TETHER_SUM_INSTALL_CONFIGDIR "${CMAKE_INSTALL_LIBDIR}/cmake/tether_sum")
 if(TETHER_SUM_BUILD_TESTS)
     find_package(GTest REQUIRED CONFIG)
 endif()
-    
+
 
 list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
 include(TetherAddExecutable)
-    
+
 install(
     FILES cmake/TetherAddExecutable.cmake
     DESTINATION "${TETHER_SUM_INSTALL_CONFIGDIR}/modules"
